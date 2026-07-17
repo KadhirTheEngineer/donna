@@ -58,7 +58,9 @@ The safe default is guarded mode: reads are allowed, consequential writes ask, a
     src/model.rs     dashboard data contract and demo data
     src/ui.rs        responsive Ratatui presentation
     src/main.rs      terminal lifecycle and command-line entry point
-    docs/            service architecture, API contract, and roadmap
+    docs/system-spec.md  product and system source of truth
+    docs/handoff.md      entry point for the Windows implementation session
+    docs/                architecture, API contract, and roadmap
 
 The service is designed in detail but intentionally not implemented in this milestone.
 
@@ -67,4 +69,3 @@ The service is designed in detail but intentionally not implemented in this mile
 Donna is designed so personal content, embeddings, model prompts, and integration tokens stay on the laptop. Google still receives requests necessary to use Gmail, Calendar, and Tasks, and websites receive normal browser traffic during research. Local-first prevents Donna from introducing another cloud AI or hosted database; it cannot make upstream services disappear.
 
 Financial output must preserve source, publication time, observed period, and retrieval time. Donna will organize evidence, not place trades or manufacture certainty.
-
