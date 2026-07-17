@@ -1,6 +1,6 @@
 # Donna
 
-Donna is a local-first personal command center. This repository contains its thin Rust terminal client: a responsive dashboard intended to stay open on a second monitor while a future laptop-hosted service handles integrations, models, tools, and background work.
+Donna is a local-first personal command center. This repository contains its thin Rust terminal client and the first laptop-hosted read-only service slice.
 
 Codex contributors should start from the repository root. AGENTS.md automatically loads the complete product and Windows handoff instructions.
 
@@ -14,6 +14,8 @@ This milestone deliberately uses realistic demo data. It settles what Donna shou
 - Inspectable, granular permission policy
 - Cross-platform configuration
 - Render tests for square 1080-pixel window proportions and smaller terminals
+- Loopback laptop health, authenticated pairing, dashboard snapshot, local cache,
+  visible stale state, and WebSocket invalidation
 
 ## Run
 
@@ -30,6 +32,27 @@ Other useful commands:
     cargo build --release
 
 The optimized result is target/release/donna, or donna.exe on Windows.
+
+## Run the demo server
+
+Python 3.11 is required. The server uses a project-local environment and needs
+no credentials, PostgreSQL, GPU, Google account, or internet access in demo mode:
+
+    scripts\bootstrap.cmd
+    scripts\run-demo-server.cmd
+
+Run every Python and Rust repository check locally with:
+
+    scripts\check.cmd
+
+Health is available at `http://127.0.0.1:8742/v1/health`. The server is
+intentionally loopback-only until encrypted LAN transport is implemented.
+
+To exercise connected client mode, create a pairing code on the laptop with
+`.venv\Scripts\python -m donna_server pairing-code`, run `donna pair` on the
+client, and set `show_demo_data = false` in the client configuration. Cached
+data is shown as stale until reconnection. Only snapshots explicitly marked
+`allow_local` by the server are written to the local cache.
 
 ## Keys
 
@@ -67,7 +90,8 @@ The safe default is guarded mode: reads are allowed, consequential writes ask, a
     docs/handoff.md      entry point for the Windows implementation session
     docs/                architecture, API contract, and roadmap
 
-The service is designed in detail but intentionally not implemented in this milestone.
+The read-only service foundation is implemented; Google OAuth and connector work
+remain gated on the design review required by the Windows handoff.
 
 ## Privacy stance
 
