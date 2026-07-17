@@ -7,6 +7,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = {
+    "calendar-sync-page.v1.json": "calendar-sync-page.v1.json",
     "dashboard-snapshot.v1.json": "dashboard-snapshot.v1.json",
     "event.dashboard-invalidated.v1.json": "event.v1.json",
 }

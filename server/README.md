@@ -4,6 +4,10 @@ This component is the laptop-hosted API edge and modular monolith. The initial
 slice serves health, authenticated device pairing, a deterministic dashboard
 fixture, and invalidation events. It never calls Ollama or external providers.
 
+A fake read-only Calendar connector provides the normalized sync, cursor,
+fetch-by-ID, and health boundary without OAuth or internet access. The real
+Google adapter remains gated by `docs/design/google-read-only-oauth.md` review.
+
 Dependency direction is `api -> application -> domain <- adapters`. Domain code
 does not import FastAPI, provider clients, or persistence models. Demo mode uses
 in-memory repositories. PostgreSQL identity and durable event adapters implement

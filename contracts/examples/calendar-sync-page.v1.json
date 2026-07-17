@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "account_id": "account-demo-google",
+  "events": [
+    {
+      "id": "calendar-event-demo-1",
+      "source": "google_calendar",
+      "source_id": "provider-event-1",
+      "calendar_id": "calendar-demo-primary",
+      "title": "Project planning",
+      "starts_at": "2026-07-17T16:00:00Z",
+      "ends_at": "2026-07-17T16:30:00Z",
+      "location": "Video call",
+      "status": "confirmed",
+      "updated_at": "2026-07-16T20:00:00Z"
+    }
+  ],
+  "next_cursor": "fixture-cursor-2",
+  "source_updated_at": "2026-07-16T20:00:00Z"
+}
