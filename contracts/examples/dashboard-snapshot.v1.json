@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-16T19:00:00Z",
+  "freshness": { "state": "current", "source_updated_at": "2026-07-16T18:59:48Z" },
+  "cache_policy": "allow_local",
+  "greeting": "Good afternoon.",
+  "summary": "Two meetings remain and one message needs attention.",
+  "events": [
+    { "id": "event-demo-1", "source": "demo", "source_id": "calendar-1", "time": "2:00 PM", "title": "Product sync", "calendar": "Work", "location": "Video call" }
+  ],
+  "tasks": [
+    { "id": "task-demo-1", "source": "demo", "source_id": "task-1", "title": "Review notes", "project": "Donna", "due": "Today", "priority": 2, "done": false }
+  ],
+  "mail": [
+    { "id": "mail-demo-1", "source": "demo", "source_id": "thread-1", "sender": "Demo Sender", "subject": "Review requested", "received": "18m", "reason": "Direct question", "unread": true }
+  ],
+  "jobs": [
+    { "id": "job-demo-1", "source": "demo", "source_id": "job-1", "title": "Read-only demo", "state": "healthy", "progress": 100, "detail": "Fixture loaded" }
+  ],
+  "markets": [
+    { "id": "market-demo-1", "source": "demo", "source_id": "SPY", "symbol": "SPY", "price": "$624.18", "change": 0.42, "note": "Delayed demo" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "event_id": "event-000001",
+  "sequence": 1,
+  "occurred_at": "2026-07-16T19:00:01Z",
+  "type": "dashboard.invalidated",
+  "resource_id": "dashboard:today",
+  "trace_id": "trace-demo-1",
+  "data": { "reason": "demo_fixture_refreshed" }
+}

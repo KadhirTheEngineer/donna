@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://donna.local/contracts/dashboard-snapshot.v1.json",
+  "title": "DashboardSnapshotV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "freshness", "cache_policy", "greeting", "summary", "events", "tasks", "mail", "jobs", "markets"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "freshness": { "$ref": "#/$defs/freshness" },
+    "cache_policy": { "enum": ["allow_local", "memory_only"] },
+    "greeting": { "type": "string" },
+    "summary": { "type": "string" },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } },
+    "mail": { "type": "array", "items": { "$ref": "#/$defs/mail" } },
+    "jobs": { "type": "array", "items": { "$ref": "#/$defs/job" } },
+    "markets": { "type": "array", "items": { "$ref": "#/$defs/market" } }
+  },
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "source", "source_id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "source_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "source_updated_at"],
+      "properties": {
+        "state": { "enum": ["current", "stale", "partial", "failed"] },
+        "source_updated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "event": {
+      "allOf": [
+        { "$ref": "#/$defs/identity" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "source", "source_id", "time", "title", "calendar", "location"],
+          "properties": {
+            "id": { "type": "string" }, "source": { "type": "string" }, "source_id": { "type": "string" },
+            "time": { "type": "string" }, "title": { "type": "string" }, "calendar": { "type": "string" },
+            "location": { "type": ["string", "null"] }
+          }
+        }
+      ]
+    },
+    "task": {
+      "allOf": [
+        { "$ref": "#/$defs/identity" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "source", "source_id", "title", "project", "due", "priority", "done"],
+          "properties": {
+            "id": { "type": "string" }, "source": { "type": "string" }, "source_id": { "type": "string" },
+            "title": { "type": "string" }, "project": { "type": "string" }, "due": { "type": "string" },
+            "priority": { "type": "integer", "minimum": 0, "maximum": 3 }, "done": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "mail": {
+      "allOf": [
+        { "$ref": "#/$defs/identity" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "source", "source_id", "sender", "subject", "received", "reason", "unread"],
+          "properties": {
+            "id": { "type": "string" }, "source": { "type": "string" }, "source_id": { "type": "string" },
+            "sender": { "type": "string" }, "subject": { "type": "string" }, "received": { "type": "string" },
+            "reason": { "type": "string" }, "unread": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "job": {
+      "allOf": [
+        { "$ref": "#/$defs/identity" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "source", "source_id", "title", "state", "progress", "detail"],
+          "properties": {
+            "id": { "type": "string" }, "source": { "type": "string" }, "source_id": { "type": "string" },
+            "title": { "type": "string" }, "state": { "enum": ["healthy", "working", "attention", "offline"] },
+            "progress": { "type": "integer", "minimum": 0, "maximum": 100 }, "detail": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "market": {
+      "allOf": [
+        { "$ref": "#/$defs/identity" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "source", "source_id", "symbol", "price", "change", "note"],
+          "properties": {
+            "id": { "type": "string" }, "source": { "type": "string" }, "source_id": { "type": "string" },
+            "symbol": { "type": "string" }, "price": { "type": "string" }, "change": { "type": "number" }, "note": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}
