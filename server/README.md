@@ -55,6 +55,7 @@ outside loopback.
 | `DONNA_BIND_PORT` | `8742` | API port |
 | `DONNA_PAIRING_TTL_SECONDS` | `300` | Pairing code lifetime, 60-900 seconds |
 | `DONNA_REPLAY_WINDOW_SECONDS` | `120` | Signed request clock window, 30-300 seconds |
+| `DONNA_DATABASE_DSN` | unset | Passwordless loopback PostgreSQL DSN; enables durable identity and events |
 
 Secrets are never accepted from environment variables, command-line arguments,
 or logs. `DONNA_DATABASE_DSN` is currently development-only and must not contain

@@ -68,6 +68,7 @@ def test_health_explains_demo_degradation() -> None:
         "ollama",
     }
     assert response.headers["X-Donna-Request-Id"].startswith("request_")
+    assert response.headers["X-Donna-Trace-Id"].startswith("trace_")
 
 
 def test_dashboard_requires_authentication_and_returns_contract_fixture() -> None:

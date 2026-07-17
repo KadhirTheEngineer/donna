@@ -13,6 +13,11 @@ From PowerShell in the repository root:
 The check command validates Python formatting, types, tests, contracts,
 migrations, configuration, and all required Rust checks.
 
+Every HTTP response carries request and trace IDs. The server emits a structured
+completion record containing only component, method, path, status, duration,
+stable error category, and those IDs—never headers, query text, bodies, keys, or
+personal content.
+
 ## 2. Start the laptop service
 
     scripts\run-demo-server.cmd

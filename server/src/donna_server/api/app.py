@@ -1,4 +1,7 @@
 import asyncio
+import json
+import logging
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -20,6 +23,8 @@ from donna_server.domain.health import HealthProbe
 from donna_server.domain.identity import DeviceCredential, IdentityRepository
 from donna_server.events.memory import MemoryEventBus
 
+LOGGER = logging.getLogger("donna.request")
+
 
 def _repository_root() -> Path:
     return Path(__file__).resolve().parents[4]
@@ -27,6 +32,23 @@ def _repository_root() -> Path:
 
 def _request_id(request: Request) -> str:
     return getattr(request.state, "request_id", f"request_{uuid4().hex}")
+
+
+def _log_request(
+    request: Request, status_code: int, started: float, error_category: str | None
+) -> None:
+    record = {
+        "component": "api",
+        "event": "request.completed",
+        "request_id": request.state.request_id,
+        "trace_id": request.state.trace_id,
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": status_code,
+        "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+        "error_category": error_category or getattr(request.state, "error_category", None),
+    }
+    LOGGER.info("%s", json.dumps(record, sort_keys=True, separators=(",", ":")))
 
 
 def _is_loopback_client(host: str | None) -> bool:
@@ -70,12 +92,21 @@ def create_app(
     @app.middleware("http")
     async def request_context(request: Request, call_next: Any) -> Any:
         request.state.request_id = f"request_{uuid4().hex}"
-        response = await call_next(request)
+        request.state.trace_id = f"trace_{uuid4().hex}"
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            _log_request(request, 500, started, "internal")
+            raise
         response.headers["X-Donna-Request-Id"] = request.state.request_id
+        response.headers["X-Donna-Trace-Id"] = request.state.trace_id
+        _log_request(request, response.status_code, started, None)
         return response
 
     @app.exception_handler(DonnaError)
     async def donna_error(request: Request, error: DonnaError) -> JSONResponse:
+        request.state.error_category = error.code
         return JSONResponse(
             status_code=error.status_code,
             content={
