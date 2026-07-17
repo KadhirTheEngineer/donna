@@ -2,6 +2,8 @@
 
 This file is the entry point for a Codex session running on the gaming laptop.
 
+The repository root AGENTS.md automatically activates this handoff. The user does not need to paste a startup prompt. A Codex session opened from the repository should follow AGENTS.md, complete the required reading below, and begin the safe unattended workflow.
+
 ## Read first
 
 1. docs/system-spec.md

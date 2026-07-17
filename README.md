@@ -2,6 +2,8 @@
 
 Donna is a local-first personal command center. This repository contains its thin Rust terminal client: a responsive dashboard intended to stay open on a second monitor while a future laptop-hosted service handles integrations, models, tools, and background work.
 
+Codex contributors should start from the repository root. AGENTS.md automatically loads the complete product and Windows handoff instructions.
+
 This milestone deliberately uses realistic demo data. It settles what Donna should present and how it should feel before the orchestrator is built.
 
 ## Current features
