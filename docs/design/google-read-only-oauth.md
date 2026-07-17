@@ -6,14 +6,21 @@ This design is the gate for the final connector item in the Windows handoff. No
 Google project, OAuth consent screen, account enrollment, token, or API mutation
 has been created by the implementation session.
 
+Owner direction recorded 2026-07-17: read operations should be usable without
+per-operation approval, while all Google writes must remain blocked until an
+explicit approval is made in the CLI. Local caching of normalized Google data is
+permitted; the server still declares cache policy so especially sensitive views
+can be memory-only later. This direction does not constitute final approval to
+begin OAuth enrollment.
+
 ## Boundary
 
 - OAuth occurs only on the gaming laptop through the FastAPI connector adapter.
 - The Rust client receives normalized Donna records, never Google tokens or SDK
   objects.
-- Start with a dedicated test account and read-only Calendar only. Gmail and
-  Tasks remain disabled until Calendar sync, revocation, and retention behavior
-  are proven.
+- Start with read-only Calendar only. The owner may enroll the primary account
+  after reviewing this design; Gmail and Tasks remain disabled until Calendar
+  sync, revocation, and retention behavior are proven.
 - Request the narrowest verified read-only scope. Exact provider scope names and
   redirect requirements must be rechecked against official Google documentation
   during review rather than copied from an old example.
@@ -46,10 +53,10 @@ has been created by the implementation session.
 
 ## Review decisions
 
-- approve the Google project and test account;
+- approve the Google project and account selected for initial enrollment;
 - approve exact read-only Calendar scopes and retention policy;
 - approve the loopback browser flow and Windows credential protection approach;
-- define which normalized calendar fields are cacheable on clients;
+- confirm any exceptions to the owner-approved local caching policy;
 - verify deletion/export behavior before any personal history is retained.
 
 Implementation begins only after those decisions are reviewed. The fake Calendar

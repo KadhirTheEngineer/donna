@@ -2,6 +2,10 @@
 
 Donna is a local-first personal command center. This repository contains its thin Rust terminal client and the first laptop-hosted read-only service slice.
 
+Start with [How Donna works](docs/how-it-works.md) for a plain-language map of
+the CLI, API, orchestrator, model, connector, storage, policy, and event paths,
+including the distinction between implemented behavior and the normative design.
+
 Codex contributors should start from the repository root. AGENTS.md automatically loads the complete product and Windows handoff instructions.
 
 This milestone deliberately uses realistic demo data. It settles what Donna should present and how it should feel before the orchestrator is built.
@@ -84,6 +88,7 @@ The safe default is guarded mode: reads are allowed, consequential writes ask, a
     src/ui.rs        responsive Ratatui presentation
     src/main.rs      terminal lifecycle and command-line entry point
     docs/system-spec.md  product and system source of truth
+    docs/how-it-works.md owner-facing stack map and reading order
     docs/orchestrator-spec.md  typed workflow and durability contract
     docs/ollama-interface.md   local inference adapter contract
     docs/serviceability.md     maintainability and owner-learning contract
