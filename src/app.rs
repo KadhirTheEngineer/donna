@@ -1,6 +1,10 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{config::Config, model::Briefing};
+use crate::{
+    config::Config,
+    connection::{ConnectionEvent, ConnectionState},
+    model::Briefing,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Panel {
@@ -47,10 +51,12 @@ pub struct App {
     pub command: String,
     pub toast: Option<String>,
     pub should_quit: bool,
+    pub connection: ConnectionState,
 }
 
 impl App {
     pub fn new(config: Config) -> Self {
+        let demo_mode = config.ui.show_demo_data;
         Self {
             briefing: Briefing::demo(),
             config,
@@ -58,8 +64,39 @@ impl App {
             focused: None,
             overlay: None,
             command: String::new(),
-            toast: Some("Demo mode · server disconnected".into()),
+            toast: Some(if demo_mode {
+                "Demo mode · no external services".into()
+            } else {
+                "Connecting to Donna laptop".into()
+            }),
             should_quit: false,
+            connection: if demo_mode {
+                ConnectionState::Demo
+            } else {
+                ConnectionState::Connecting
+            },
+        }
+    }
+    pub fn apply_connection_event(&mut self, event: ConnectionEvent) {
+        match event {
+            ConnectionEvent::Snapshot(snapshot) => {
+                self.briefing = snapshot.into();
+                self.toast = Some("Dashboard synchronized".into());
+            }
+            ConnectionEvent::State(state) => {
+                self.toast = Some(match &state {
+                    ConnectionState::Demo => "Demo mode · no external services".into(),
+                    ConnectionState::Connecting => "Connecting to Donna laptop".into(),
+                    ConnectionState::Online => "Connected · dashboard current".into(),
+                    ConnectionState::Stale(reason) => {
+                        format!("STALE · reconnecting · {reason}")
+                    }
+                    ConnectionState::AuthenticationRequired => {
+                        "Pairing required · run `donna pair`".into()
+                    }
+                });
+                self.connection = state;
+            }
         }
     }
     pub fn panel(&self) -> Panel {
@@ -109,7 +146,13 @@ impl App {
                     self.selected = c.to_digit(10).unwrap() as usize - 1;
                 }
             }
-            KeyCode::Char('r') => self.toast = Some("Refresh queued · demo data unchanged".into()),
+            KeyCode::Char('r') => {
+                self.toast = Some(if self.connection == ConnectionState::Demo {
+                    "Refresh queued · demo data unchanged".into()
+                } else {
+                    "Connected mode refreshes on server invalidation".into()
+                })
+            }
             _ => {}
         }
     }

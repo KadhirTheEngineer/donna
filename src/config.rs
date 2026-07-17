@@ -3,6 +3,7 @@ use std::{fs, path::PathBuf};
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -98,7 +99,10 @@ impl Config {
         }
         let raw = fs::read_to_string(&path)
             .with_context(|| format!("read config at {}", path.display()))?;
-        toml::from_str(&raw).with_context(|| format!("parse config at {}", path.display()))
+        let config: Self =
+            toml::from_str(&raw).with_context(|| format!("parse config at {}", path.display()))?;
+        config.validate()?;
+        Ok(config)
     }
 
     pub fn path() -> Option<PathBuf> {
@@ -108,6 +112,25 @@ impl Config {
 
     pub fn example() -> Result<String> {
         toml::to_string_pretty(&Self::default()).context("serialize example config")
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        let url = Url::parse(&self.server.url).context("server.url must be an absolute URL")?;
+        let host = url.host_str().context("server.url must include a host")?;
+        let loopback = matches!(host, "127.0.0.1" | "::1" | "localhost");
+        if url.scheme() == "http" && !loopback {
+            anyhow::bail!("server.url may use cleartext HTTP only for a loopback host");
+        }
+        if !matches!(url.scheme(), "http" | "https") {
+            anyhow::bail!("server.url must use http or https");
+        }
+        if !url.username().is_empty() || url.password().is_some() {
+            anyhow::bail!("server.url must not contain credentials");
+        }
+        if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
+            anyhow::bail!("server.url must not contain a path, query, or fragment");
+        }
+        Ok(())
     }
 }
 
@@ -126,5 +149,18 @@ mod tests {
         let decoded: Config = toml::from_str(&encoded).unwrap();
         assert_eq!(decoded.permissions.write_files, Decision::Ask);
         assert_eq!(decoded.permissions.mode, PermissionMode::Guarded);
+        decoded.validate().unwrap();
+    }
+
+    #[test]
+    fn cleartext_lan_server_is_rejected() {
+        let config = Config {
+            server: ServerConfig {
+                url: "http://192.0.2.1:8742".into(),
+                ..ServerConfig::default()
+            },
+            ..Config::default()
+        };
+        assert!(config.validate().is_err());
     }
 }

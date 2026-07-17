@@ -9,6 +9,7 @@ use ratatui::{
 use crate::{
     app::{App, Overlay, Panel},
     config::{Decision, PermissionMode},
+    connection::ConnectionState,
     model::Status,
 };
 
@@ -99,10 +100,17 @@ fn render_header(frame: &mut Frame, app: &App, area: Rect) {
     let ago = (chrono::Local::now() - app.briefing.updated_at)
         .num_seconds()
         .max(0);
+    let (indicator, label, color) = match &app.connection {
+        ConnectionState::Demo => ("●", "DEMO", GOLD),
+        ConnectionState::Connecting => ("◌", "CONNECTING", BLUE),
+        ConnectionState::Online => ("●", "ONLINE", CYAN),
+        ConnectionState::Stale(_) => ("!", "STALE", RED),
+        ConnectionState::AuthenticationRequired => ("!", "PAIR", GOLD),
+    };
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("● ", Style::new().fg(GOLD)),
-            Span::styled("DEMO", Style::new().fg(GOLD).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{indicator} "), Style::new().fg(color)),
+            Span::styled(label, Style::new().fg(color).add_modifier(Modifier::BOLD)),
             Span::styled(format!("  updated {ago}s ago "), Style::new().fg(MUTED)),
         ]))
         .alignment(Alignment::Right)
