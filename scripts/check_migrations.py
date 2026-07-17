@@ -20,6 +20,13 @@ def main() -> None:
         sql = migration.read_text(encoding="utf-8")
         if "Recovery:" not in sql:
             raise SystemExit(f"migration lacks documented recovery: {migration.name}")
+        executable_sql = "\n".join(
+            line for line in sql.splitlines() if not line.lstrip().startswith("--")
+        )
+        if re.search(r"\bDROP\s+(TABLE|SCHEMA|COLUMN)\b", executable_sql, re.IGNORECASE):
+            raise SystemExit(
+                f"destructive migration requires explicit expand/contract review: {migration.name}"
+            )
     expected = list(range(1, len(numbers) + 1))
     if numbers != expected:
         raise SystemExit(f"migration sequence must be contiguous: {numbers}")

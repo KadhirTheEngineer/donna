@@ -15,7 +15,7 @@ class PairingCode:
 class DeviceCredential:
     device_id: str
     friendly_name: str
-    secret: bytes
+    public_key: bytes
     capabilities: tuple[str, ...]
     created_at: datetime
     revoked_at: datetime | None = None

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from donna_server.domain.errors import DonnaError
 from donna_server.domain.identity import DeviceCredential, IdentityRepository, PairingCode
@@ -15,14 +17,13 @@ def _digest_code(code: str) -> str:
     return hashlib.sha256(code.encode("ascii")).hexdigest()
 
 
-def _secret_text(secret: bytes) -> str:
-    return base64.urlsafe_b64encode(secret).decode("ascii").rstrip("=")
+def _decode_base64url(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
 
 
 @dataclass(frozen=True, slots=True)
-class IssuedCredential:
+class IssuedDevice:
     device_id: str
-    secret: str
     issued_at: datetime
 
 
@@ -49,25 +50,34 @@ class IdentityService:
         code: str,
         friendly_name: str,
         capabilities: tuple[str, ...],
+        public_key_text: str,
         now: datetime | None = None,
-    ) -> IssuedCredential:
+    ) -> IssuedDevice:
         issued_at = now or datetime.now(UTC)
         if len(code) != 6 or not code.isascii() or not code.isdigit():
             self._invalid_code()
         if not self._repository.consume_pairing_code(_digest_code(code), issued_at):
             self._invalid_code()
+        try:
+            public_key = _decode_base64url(public_key_text)
+            Ed25519PublicKey.from_public_bytes(public_key)
+        except (ValueError, TypeError):
+            raise DonnaError(
+                "device_key_invalid",
+                "The device public key is not a valid Ed25519 key.",
+                400,
+            ) from None
         device_id = f"device_{secrets.token_hex(12)}"
-        secret = secrets.token_bytes(32)
         self._repository.save_device(
             DeviceCredential(
                 device_id=device_id,
                 friendly_name=friendly_name,
-                secret=secret,
+                public_key=public_key,
                 capabilities=capabilities,
                 created_at=issued_at,
             )
         )
-        return IssuedCredential(device_id, _secret_text(secret), issued_at)
+        return IssuedDevice(device_id, issued_at)
 
     def authenticate(
         self,
@@ -99,8 +109,10 @@ class IdentityService:
             self._authentication_failed()
         body_digest = hashlib.sha256(body).hexdigest()
         message = f"{method.upper()}\n{path}\n{timestamp_text}\n{nonce}\n{body_digest}".encode()
-        expected = hmac.new(device.secret, message, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(expected, signature):
+        try:
+            signature_bytes = _decode_base64url(signature)
+            Ed25519PublicKey.from_public_bytes(device.public_key).verify(signature_bytes, message)
+        except (ValueError, InvalidSignature):
             self._authentication_failed()
         if not self._repository.claim_nonce(
             device_id, nonce, current, current + self._replay_window

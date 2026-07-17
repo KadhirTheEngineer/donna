@@ -12,6 +12,9 @@ The contract is versioned under /v1. JSON uses stable IDs, RFC 3339 timestamps, 
 
 ## Core endpoints
 
+- GET /v1/health
+- POST /v1/pairing/codes (laptop loopback only)
+- POST /v1/pairing/complete
 - GET /v1/dashboard?window=today
 - POST /v1/commands
 - GET /v1/jobs
@@ -23,6 +26,31 @@ The contract is versioned under /v1. JSON uses stable IDs, RFC 3339 timestamps, 
 - POST /v1/approvals/{id}/decision
 
 Dashboard entries include opaque ID, source, source ID, timestamps, detail URL, and freshness. The CLI never infers an external identifier from display text.
+
+The health endpoint is safe before enrollment and contains sanitized component
+state, last success, stable error category, dependency health, details, and an
+actionable remedy. It never exposes hostnames, IP addresses, user paths, tokens,
+prompts, or personal content.
+
+During pairing, the client generates an Ed25519 private key in its platform
+credential store and sends only the public key with the one-time code, friendly
+name, and requested capabilities. The server returns the device ID; it never
+receives or issues a recoverable device signing secret.
+
+Authenticated requests carry `X-Donna-Device-Id`, RFC 3339
+`X-Donna-Timestamp`, a unique `X-Donna-Nonce`, and base64url
+`X-Donna-Signature`. The signed bytes are UTF-8:
+
+    UPPERCASE_METHOD + "\n" + PATH + "\n" + TIMESTAMP + "\n" + NONCE + "\n" + SHA256_HEX(BODY)
+
+The server verifies the Ed25519 signature, clock window, capability, revocation,
+and durable nonce claim. Query parameters are validated by the endpoint but are
+not part of the version-one canonical path. Every new mutation additionally
+requires the specified idempotency key and effect hash.
+
+Dashboard snapshots declare `cache_policy` as `allow_local` or `memory_only`.
+The client persists only `allow_local` snapshots and always marks a restored
+snapshot stale until the server confirms current state.
 
 A command contains text, a client request ID, current view context, selected IDs, execution mode, and optional time budget. The server returns a result, an accepted durable job, or an approval requirement.
 

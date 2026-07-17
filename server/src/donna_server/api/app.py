@@ -15,8 +15,9 @@ from donna_server.application.identity import IdentityService
 from donna_server.config import ConfigurationError, Settings
 from donna_server.domain.dashboard import DashboardService
 from donna_server.domain.errors import DonnaError
+from donna_server.domain.events import EventBus
 from donna_server.domain.health import HealthProbe
-from donna_server.domain.identity import DeviceCredential
+from donna_server.domain.identity import DeviceCredential, IdentityRepository
 from donna_server.events.memory import MemoryEventBus
 
 
@@ -36,23 +37,28 @@ def create_app(
     settings: Settings | None = None,
     health_probe: HealthProbe | None = None,
     dashboard_service: DashboardService | None = None,
+    identity_repository: IdentityRepository | None = None,
+    event_bus: EventBus | None = None,
 ) -> FastAPI:
     active_settings = settings or Settings.from_environment()
     active_settings.validate()
-    if active_settings.environment == "production":
+    if active_settings.environment == "production" and (
+        identity_repository is None or event_bus is None
+    ):
         raise ConfigurationError(
             "production mode requires the durable identity and event repository adapters"
         )
-    identity_repository = MemoryIdentityRepository()
+    ephemeral = identity_repository is None or event_bus is None
+    active_identity_repository = identity_repository or MemoryIdentityRepository()
     identity = IdentityService(
-        identity_repository,
+        active_identity_repository,
         active_settings.pairing_ttl_seconds,
         active_settings.replay_window_seconds,
     )
     dashboard = dashboard_service or FixtureDashboardService(
         _repository_root() / "contracts" / "examples" / "dashboard-snapshot.v1.json"
     )
-    events = MemoryEventBus()
+    events = event_bus or MemoryEventBus()
     host_health = health_probe or FakeHealthProbe()
 
     app = FastAPI(title="Donna laptop service", version="1.0.0")
@@ -109,7 +115,6 @@ def create_app(
 
     @app.get("/v1/health")
     def health() -> dict[str, Any]:
-        ephemeral = active_settings.environment != "production"
         components = [
             {
                 "component": "api",
@@ -122,15 +127,19 @@ def create_app(
             },
             {
                 "component": "identity_store",
-                "state": "degraded" if ephemeral else "unavailable",
-                "last_success": None,
-                "last_error_category": "ephemeral_demo_store" if ephemeral else "not_configured",
+                "state": "degraded" if ephemeral else "healthy",
+                "last_success": (
+                    None if ephemeral else datetime.now(UTC).isoformat().replace("+00:00", "Z")
+                ),
+                "last_error_category": "ephemeral_demo_store" if ephemeral else None,
                 "dependencies": ["postgresql"],
                 "remediation": (
                     "Demo pairing is lost on restart. Configure the PostgreSQL adapter "
                     "before production use."
+                    if ephemeral
+                    else None
                 ),
-                "details": {"durable": False},
+                "details": {"durable": not ephemeral},
             },
             {
                 "component": "dashboard",
@@ -146,7 +155,7 @@ def create_app(
             *host_health.snapshot(),
         ]
         return {
-            "status": "degraded" if ephemeral else "unavailable",
+            "status": "degraded",
             "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "components": components,
         }
@@ -168,10 +177,10 @@ def create_app(
             pairing.code,
             pairing.friendly_name,
             tuple(sorted(set(pairing.capabilities))),
+            pairing.public_key,
         )
         return PairingResponse(
             device_id=credential.device_id,
-            secret=credential.secret,
             issued_at=credential.issued_at,
         )
 
@@ -237,17 +246,19 @@ def create_app(
             while True:
                 event_task = asyncio.create_task(subscriber.get())
                 receive_task = asyncio.create_task(websocket.receive_text())
-                done, pending = await asyncio.wait(
-                    {event_task, receive_task}, return_when=asyncio.FIRST_COMPLETED
-                )
-                for task in pending:
-                    task.cancel()
-                await asyncio.gather(*pending, return_exceptions=True)
-                if receive_task in done:
-                    receive_task.result()
-                    continue
-                await websocket.send_json(event_task.result())
-        except WebSocketDisconnect:
+                tasks = {event_task, receive_task}
+                try:
+                    done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                    if receive_task in done:
+                        receive_task.result()
+                        continue
+                    await websocket.send_json(event_task.result())
+                finally:
+                    for task in tasks:
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+        except (WebSocketDisconnect, asyncio.CancelledError):
             pass
         finally:
             events.unsubscribe(subscriber)

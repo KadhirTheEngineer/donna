@@ -112,6 +112,12 @@ IP allowlisting is only an extra filter because local IPs can change or be spoof
 
 Tailscale can later provide encrypted transport and stable networking. Application identity remains useful.
 
+The first application identity implementation uses Ed25519 request signatures.
+The client creates and retains the private key in its operating-system credential
+manager; PostgreSQL stores only the public key, capability scopes, revocation,
+and replay nonces. Demo mode uses the same domain interface with explicitly
+ephemeral storage and reports degraded health.
+
 ## Permission model
 
 Policy is evaluated per action across device, tool, operation, workspace or connector, sensitivity, effect, blast radius, and foreground versus unattended execution.

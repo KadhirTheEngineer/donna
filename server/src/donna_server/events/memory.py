@@ -37,7 +37,10 @@ class MemoryEventBus:
             self._events.append(event)
             subscribers = tuple(self._subscribers)
         for subscriber in subscribers:
-            subscriber.put_nowait(event)
+            try:
+                subscriber.put_nowait(event)
+            except asyncio.QueueFull:
+                self.unsubscribe(subscriber)
         return event
 
     def replay_after(self, sequence: int) -> tuple[list[dict[str, Any]], bool]:

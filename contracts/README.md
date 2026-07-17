@@ -5,7 +5,7 @@ that cross the server/client boundary. Sanitized examples live in `examples/`
 and are validated by the server and Rust client tests.
 
 `auth-signature.v1.json` contains an intentionally public deterministic test key,
-never a production credential. It binds the Python and Rust HMAC canonicalization.
+never a production credential. It binds the Python and Rust Ed25519 canonicalization.
 
 Compatibility rules:
 

@@ -19,13 +19,13 @@ class PairingRequest(StrictModel):
     code: str = Field(pattern=r"^\d{6}$")
     friendly_name: str = Field(min_length=1, max_length=80)
     capabilities: list[str] = Field(default_factory=list, max_length=32)
+    public_key: str = Field(min_length=43, max_length=44)
 
 
 class PairingResponse(StrictModel):
     device_id: str
-    secret: str
     issued_at: datetime
-    authentication: Literal["hmac-sha256-v1"] = "hmac-sha256-v1"
+    authentication: Literal["ed25519-v1"] = "ed25519-v1"
 
 
 class ErrorResponse(StrictModel):

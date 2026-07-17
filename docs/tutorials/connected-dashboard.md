@@ -36,8 +36,9 @@ On the client:
     donna pair
 
 Enter the six-digit code when prompted. The code is single-use and expires. The
-client stores the issued secret in the operating-system credential manager;
-neither code nor secret appears in process arguments or configuration.
+client generates an Ed25519 private key locally, stores it in the operating-system
+credential manager, and pairs only its public key; neither code nor private key appears in
+process arguments or configuration.
 
 ## 4. Enable connected mode
 

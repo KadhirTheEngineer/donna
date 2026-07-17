@@ -6,10 +6,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{SecondsFormat, Utc};
-use hmac::{Hmac, Mac};
+use ed25519_dalek::{Signer, SigningKey};
 use keyring::Entry;
 use rand::RngCore;
 use reqwest::{
@@ -22,8 +22,6 @@ use sha2::{Digest, Sha256};
 use tungstenite::{Message, client::IntoClientRequest};
 
 use crate::{cache, config::ServerConfig, model::DashboardSnapshot};
-
-type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug)]
 struct AuthenticationRequiredError;
@@ -44,7 +42,7 @@ const SIGNATURE: &str = "X-Donna-Signature";
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DeviceCredential {
     pub device_id: String,
-    pub secret: String,
+    pub private_key: String,
 }
 
 #[derive(Debug)]
@@ -65,7 +63,6 @@ pub enum ConnectionState {
 #[derive(Debug, Deserialize)]
 struct PairingResponse {
     device_id: String,
-    secret: String,
 }
 
 #[derive(Serialize)]
@@ -73,6 +70,7 @@ struct PairingRequest<'a> {
     code: &'a str,
     friendly_name: &'a str,
     capabilities: [&'a str; 2],
+    public_key: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -110,6 +108,8 @@ pub fn pair_device(server: &ServerConfig, code: &str) -> Result<String> {
         bail!("pairing code must contain exactly six digits");
     }
     let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
+    let private_seed = rand::random::<[u8; 32]>();
+    let signing_key = SigningKey::from_bytes(&private_seed);
     let response = client
         .post(format!(
             "{}/v1/pairing/complete",
@@ -119,6 +119,7 @@ pub fn pair_device(server: &ServerConfig, code: &str) -> Result<String> {
             code,
             friendly_name: &server.device_name,
             capabilities: ["dashboard.read", "events.read"],
+            public_key: URL_SAFE_NO_PAD.encode(signing_key.verifying_key().as_bytes()),
         })
         .send()
         .context("connect to Donna pairing endpoint")?;
@@ -128,7 +129,7 @@ pub fn pair_device(server: &ServerConfig, code: &str) -> Result<String> {
     let paired: PairingResponse = response.json().context("parse pairing response")?;
     let credential = DeviceCredential {
         device_id: paired.device_id,
-        secret: paired.secret,
+        private_key: URL_SAFE_NO_PAD.encode(private_seed),
     };
     store_credential(&server.url, &credential)?;
     Ok(credential.device_id)
@@ -299,10 +300,10 @@ fn signed_values(
     let mut nonce_bytes = [0_u8; 16];
     rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = URL_SAFE_NO_PAD.encode(nonce_bytes);
-    let secret = URL_SAFE_NO_PAD
-        .decode(&credential.secret)
-        .context("decode stored device credential")?;
-    let signature = signature_for(&secret, method, path, &timestamp, &nonce, body)?;
+    let private_key = URL_SAFE_NO_PAD
+        .decode(&credential.private_key)
+        .context("decode stored device private key")?;
+    let signature = signature_for(&private_key, method, path, &timestamp, &nonce, body)?;
     Ok([
         (DEVICE_ID.into(), credential.device_id.clone()),
         (TIMESTAMP.into(), timestamp),
@@ -312,7 +313,7 @@ fn signed_values(
 }
 
 fn signature_for(
-    secret: &[u8],
+    private_key: &[u8],
     method: &str,
     path: &str,
     timestamp: &str,
@@ -324,9 +325,11 @@ fn signature_for(
         "{}\n{path}\n{timestamp}\n{nonce}\n{body_digest}",
         method.to_ascii_uppercase()
     );
-    let mut mac = HmacSha256::new_from_slice(secret).map_err(|_| anyhow!("invalid HMAC key"))?;
-    mac.update(message.as_bytes());
-    Ok(format!("{:x}", mac.finalize().into_bytes()))
+    let seed: [u8; 32] = private_key
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("invalid Ed25519 private key length"))?;
+    let signature = SigningKey::from_bytes(&seed).sign(message.as_bytes());
+    Ok(URL_SAFE_NO_PAD.encode(signature.to_bytes()))
 }
 
 #[cfg(test)]
@@ -335,7 +338,7 @@ mod tests {
 
     #[derive(Deserialize)]
     struct SignatureFixture {
-        secret_base64url: String,
+        private_key_base64url: String,
         method: String,
         path: String,
         timestamp: String,
@@ -344,13 +347,17 @@ mod tests {
     }
 
     #[test]
-    fn signing_headers_do_not_contain_the_secret() {
+    fn signing_headers_do_not_contain_the_private_key() {
         let credential = DeviceCredential {
             device_id: "device_test".into(),
-            secret: URL_SAFE_NO_PAD.encode([7_u8; 32]),
+            private_key: URL_SAFE_NO_PAD.encode([7_u8; 32]),
         };
         let values = signed_values(&credential, "GET", "/v1/dashboard", b"").unwrap();
-        assert!(values.iter().all(|(_, value)| value != &credential.secret));
+        assert!(
+            values
+                .iter()
+                .all(|(_, value)| value != &credential.private_key)
+        );
         assert_eq!(values[0].1, "device_test");
     }
 
@@ -359,9 +366,11 @@ mod tests {
         let fixture: SignatureFixture =
             serde_json::from_str(include_str!("../contracts/examples/auth-signature.v1.json"))
                 .unwrap();
-        let secret = URL_SAFE_NO_PAD.decode(fixture.secret_base64url).unwrap();
+        let private_key = URL_SAFE_NO_PAD
+            .decode(fixture.private_key_base64url)
+            .unwrap();
         let actual = signature_for(
-            &secret,
+            &private_key,
             &fixture.method,
             &fixture.path,
             &fixture.timestamp,

@@ -1,11 +1,12 @@
 {
   "schema_version": "1.0",
   "device_id": "device_fixture",
-  "secret_base64url": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "private_key_base64url": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "public_key_base64url": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "method": "GET",
   "path": "/v1/dashboard",
   "timestamp": "2026-07-16T20:00:00.000Z",
   "nonce": "fixture-nonce-0001",
   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "signature": "387b19090a69b7436230c43adec1a3ffb0e223f6ec57153b79e1d11423b79282"
+  "signature": "VyreVFLNVvwKIUVyXefAtUOPI3nCUU669AQb4_JbbG7NtZQcd7vNBslW6gAyPtIfs3yIUpHeHWz7hsEkOHyrDQ"
 }

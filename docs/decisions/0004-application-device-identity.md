@@ -12,9 +12,10 @@ inventory, capability scopes, independent revocation, or replay semantics.
 
 ## Decision
 
-Enroll each client with a short-lived one-time code and issue an independent
-device credential. Authenticate requests with the device identity, timestamp,
-nonce, and body-bound signature. Store replay state durably in production.
+Enroll each client with a short-lived one-time code. The client generates an
+Ed25519 private key locally, stores it in its platform credential manager, and
+sends only the public key during pairing. Authenticate requests with device identity, timestamp,
+nonce, body-bound signature, and durable replay state.
 
 ## Alternatives
 
@@ -26,6 +27,7 @@ nonce, and body-bound signature. Store replay state durably in production.
 
 ## Consequences
 
-Clients need secure credential storage and clock synchronization. Every transport
-must share signing fixtures. Demo storage may be in memory but must report that
-restart loses enrollment; production requires PostgreSQL persistence.
+Clients need secure private-key storage and clock synchronization. The server
+stores no recoverable device signing secret. Every transport must share signing
+fixtures. Demo storage may be in memory but must report that restart loses
+enrollment; production requires PostgreSQL persistence.
