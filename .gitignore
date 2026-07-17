@@ -1,4 +1,5 @@
 /.venv/
+/.venv-benchmark/
 /.tools/
 /target/
 __pycache__/

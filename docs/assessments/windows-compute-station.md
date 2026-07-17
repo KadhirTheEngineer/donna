@@ -92,18 +92,43 @@ spills into system memory and is substantially slower. The 8B model reported a
 classification, planning, extraction, and initial synthesis roles. This is a
 provisional mapping until schema-quality and larger-context tests are complete.
 
-## Speech benchmark status
+## Faster-Whisper benchmark
 
-A Faster-Whisper benchmark was not possible during the read-only inventory:
-neither Faster-Whisper nor its runtime is installed, and no speech-model files
-were discovered through the available Python environment. This is an explicit
-benchmark prerequisite, not evidence that the GPU cannot run speech recognition.
+The initial inventory found no Faster-Whisper installation. A separate
+repository-local environment was subsequently created from
+`requirements-benchmark.lock`, using Faster-Whisper 1.2.1 and CTranslate2 4.8.1.
+The Small model was downloaded into the ignored project tool cache; no Ollama
+model, global Python package, driver, registry value, or CUDA configuration was
+changed.
 
-Before selecting a speech default, use a repository-local, pinned benchmark
-environment and sanitized audio fixtures to measure Small (or a comparable
-distilled model) for cold/warm latency, real-time factor, peak VRAM, transcript
-quality, cancellation, and simultaneous residency with `qwen3:8b`. Do not change
-drivers, global CUDA packages, or Ollama configuration for this benchmark.
+Tested model revision: `536b0662742c02347bc0e980a01041f333bce120`.
+Observed `model.bin` SHA-256:
+`3E305921506D8872816023E4C273E75D2419FB89B24DA97B4FE7BCE14170D671`.
+
+The first GPU attempt identified the precise missing runtime search path:
+`cublas64_12.dll` could not be loaded. Ollama already ships the required CUDA 12
+cuBLAS libraries, and the laptop already has a CUDA 11.3 cuDNN runtime. Adding
+those two existing directories only to the benchmark process `PATH` allowed the
+test to run. Production startup must discover and validate these runtime
+dependencies explicitly rather than relying on the operator's global `PATH`.
+
+Input was a 3.894-second Windows synthetic speech fixture saying, “Donna, open
+my calendar and show the next meeting.” The synthetic voice is sanitized and
+repeatable but does not establish accuracy for the owner's microphone, accent,
+room noise, or natural speech.
+
+| Condition | Load time | Transcription | Real-time factor | Peak total GPU use | Transcript |
+|---|---:|---:|---:|---:|---|
+| Faster-Whisper Small, GPU only | 1.355 s | 0.435 s | 0.112 | 942 MiB | exact |
+| Small while `qwen3:8b` resident | 1.505 s | 0.462 s | 0.119 | 6,083 MiB | exact |
+
+Immediately before the contention run, Qwen3 8B used 5,280 MiB total GPU memory
+and NVIDIA reported 2,727 MiB free. Speech increased observed total use by about
+803 MiB and left roughly 2 GiB of the 8 GiB card available. This supports Small
+as the initial interactive speech candidate alongside Qwen3 8B at a 2,048-token
+Ollama context. The scheduler must still measure larger contexts, natural audio,
+cancellation, repeated requests, and sustained thermals before treating that
+combination as an unconditional admission rule.
 
 ## Initial role and dependency recommendation
 
@@ -112,8 +137,9 @@ drivers, global CUDA packages, or Ollama configuration for this benchmark.
   dependency; resolve it through the single inference adapter by digest.
 - Leave `qwen3:14b` unassigned by default. It may be evaluated later as an
   explicitly admitted batch synthesizer when latency is unimportant.
-- Report the missing embedding and speech roles as degraded health. Never
-  download a replacement silently.
+- Report the missing embedding role and any unavailable speech runtime as
+  degraded health. Never download a replacement silently. Speech becomes healthy
+  only when the selected model and its CUDA runtime paths pass startup validation.
 - Build the laptop service as the specified Python modular monolith, with a
   project-local locked environment and fake adapters for ordinary development.
 - Keep PostgreSQL behind repository interfaces and migrations. Development and
@@ -122,6 +148,30 @@ drivers, global CUDA packages, or Ollama configuration for this benchmark.
 - Keep the API bound to loopback during development. A future LAN bind must use
   authenticated device identity and encrypted transport, not the observed IP as
   identity.
+
+## PostgreSQL migration validation
+
+PostgreSQL was not installed on the host. For development validation only, the
+official EDB PostgreSQL 17.10 Windows binary archive was downloaded to the
+ignored project tool directory. Observed archive SHA-256:
+`EF9B1E5E23D2E8A83914BA13D9DC536A72210FBA53FD1808FF1F7E06BB22B106`.
+This records the tested artifact; no independently published checksum was
+available on the linked binary page.
+
+A disposable cluster was initialized under the ignored tool directory, bound
+only to `127.0.0.1:55432`, and never installed as a Windows service. The migration
+runner applied versions 0001 and 0002, recorded their SHA-256 digests, treated a
+second run as current, and produced the identity, replay-nonce, event-outbox, and
+migration-history tables. An opt-in integration test then proved that Ed25519
+device pairing, authenticated dashboard access, and event replay survive FastAPI
+application reconstruction against the same database. PostgreSQL was stopped
+cleanly after each test.
+
+This validates the repository boundary and migrations. It does not authorize a
+production service, trust authentication, automatic startup, or a LAN database
+listener. Production database installation, backup/restore, credential
+resolution, retention, and service supervision remain separate reviewed host
+work.
 
 ## Reproduction notes
 
