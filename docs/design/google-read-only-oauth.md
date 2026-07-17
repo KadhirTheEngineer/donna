@@ -22,8 +22,12 @@ begin OAuth enrollment.
   after reviewing this design; Gmail and Tasks remain disabled until Calendar
   sync, revocation, and retention behavior are proven.
 - Request the narrowest verified read-only scope. Exact provider scope names and
-  redirect requirements must be rechecked against official Google documentation
-  during review rather than copied from an old example.
+  redirect requirements were last checked against official Google documentation
+  on 2026-07-17. The proposed initial scopes are
+  `calendar.calendarlist.readonly` to enumerate subscribed calendars and
+  `calendar.events.readonly` to synchronize their events. The latter permits
+  viewing events on every calendar the account can access; OAuth cannot restrict
+  it to one synthetic test calendar.
 
 ## Flow
 
@@ -39,6 +43,37 @@ begin OAuth enrollment.
 5. Calendar synchronization uses stable external IDs, incremental cursors,
    bounded pages, reconciliation, and a sanitized fake fixture for ordinary
    tests.
+
+Google documents the loopback redirect as supported for a Windows Desktop app.
+Donna binds a random available `127.0.0.1` port only for the authorization
+response, uses PKCE and a one-time state value, and closes the listener after a
+success, denial, mismatch, or short timeout.
+
+## Proposed primary-account test
+
+The first real test remains read-only even if the owner chooses the primary
+Google account:
+
+1. Create a secondary calendar named for Donna testing and add synthetic past,
+   current, recurring, all-day, changed, and cancelled events in Google Calendar.
+2. Before consent, show the exact requested scopes and confirm that no write
+   scope is present.
+3. Complete the system-browser flow and verify that Donna stores no token in
+   PostgreSQL, logs, the Rust client, or committed configuration.
+4. Run an initial bounded synchronization and verify the synthetic events,
+   pagination, time zones, recurrence, provenance, and dashboard presentation.
+5. Confirm that ordinary account events can be read because the granted scope is
+   account-wide, but do not include their content in fixtures, logs, screenshots,
+   or test assertions.
+6. Change and cancel synthetic events in Google Calendar, run incremental sync,
+   restart Donna, and verify cursor persistence and reconciliation.
+7. Disconnect Donna, revoke the Google grant, delete the local normalized data,
+   and verify that health reports authentication recovery without retry loops.
+
+No Calendar write endpoint or write scope is implemented during this test. A
+later mutation milestone must prove CLI preview, effect hashing, explicit
+approval, idempotency, and reconciliation using synthetic events before it can
+touch a real event.
 
 ## Failure and recovery
 
