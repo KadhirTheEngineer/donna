@@ -27,7 +27,7 @@ The first Windows session should investigate before changing the operating envir
 - benchmark installed Ollama models under realistic contention
 - propose the service development environment and dependency strategy
 
-Do not begin Google OAuth, background-service setup, firewall changes, startup configuration, or package installation until the user reviews the findings and plan. Preserve the global safety instructions in effect for the Codex environment.
+Do not begin Google OAuth, background-service setup, firewall changes, startup configuration, or systemwide package installation until the user reviews the findings and plan. Repository-local dependency environments and downloads declared in project manifests are allowed. Preserve the global safety instructions in effect for the Codex environment.
 
 The unattended-safe scope is read-only assessment, benchmarks that do not alter system configuration, documentation, tests, and repository-local implementation. YOLO mode does not authorize OS configuration, public network exposure, Google mutations, email sending, file deletion, purchases, trades, or destructive actions.
 
