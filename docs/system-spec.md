@@ -462,6 +462,8 @@ Fast consequential actions may display a short cancellation countdown without re
 
 The orchestrator is a typed workflow engine:
 
+The normative implementation details are in docs/orchestrator-spec.md and docs/ollama-interface.md.
+
 1. normalize request
 2. classify domain, intent, sensitivity, urgency, and expected duration
 3. choose deterministic route or planned route
@@ -742,4 +744,3 @@ These require prototype measurements or user selection:
 - whether a background desktop companion may launch Donna
 - portfolio import format
 - retention periods for email bodies, web snapshots, and recordings
-

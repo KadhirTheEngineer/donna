@@ -5,10 +5,12 @@ This file is the entry point for a Codex session running on the gaming laptop.
 ## Read first
 
 1. docs/system-spec.md
-2. docs/api-contract.md
-3. docs/architecture.md
-4. docs/roadmap.md
-5. README.md
+2. docs/orchestrator-spec.md
+3. docs/ollama-interface.md
+4. docs/api-contract.md
+5. docs/architecture.md
+6. docs/roadmap.md
+7. README.md
 
 The system specification wins when older documents differ. Update it when a reviewed product decision changes.
 
@@ -26,6 +28,10 @@ The first Windows session should investigate before changing the operating envir
 - propose the service development environment and dependency strategy
 
 Do not begin Google OAuth, background-service setup, firewall changes, startup configuration, or package installation until the user reviews the findings and plan. Preserve the global safety instructions in effect for the Codex environment.
+
+The unattended-safe scope is read-only assessment, benchmarks that do not alter system configuration, documentation, tests, and repository-local implementation. YOLO mode does not authorize OS configuration, public network exposure, Google mutations, email sending, file deletion, purchases, trades, or destructive actions.
+
+Do not automatically download Ollama models. Inventory and benchmark installed models, map candidates to the roles in docs/orchestrator-spec.md, and report missing roles.
 
 ## Recommended first implementation slice
 
@@ -54,4 +60,3 @@ Run:
     cargo test --locked
     cargo clippy --locked --all-targets --all-features -- -D warnings
     cargo build --release
-
