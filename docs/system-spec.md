@@ -40,6 +40,7 @@ The product name, assistant name, and executable name are Donna and donna.
 8. Stale, partial, inferred, delayed, and failed data is visibly labeled.
 9. Infrastructure is added only when a measured need justifies it.
 10. The user can understand what Donna is doing and why.
+11. Serviceability is a release requirement; docs/serviceability.md is normative.
 
 ## 3. Privacy boundary
 

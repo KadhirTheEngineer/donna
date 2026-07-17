@@ -8,9 +8,10 @@ This file is the entry point for a Codex session running on the gaming laptop.
 2. docs/orchestrator-spec.md
 3. docs/ollama-interface.md
 4. docs/api-contract.md
-5. docs/architecture.md
-6. docs/roadmap.md
-7. README.md
+5. docs/serviceability.md
+6. docs/architecture.md
+7. docs/roadmap.md
+8. README.md
 
 The system specification wins when older documents differ. Update it when a reviewed product decision changes.
 
@@ -30,6 +31,8 @@ The first Windows session should investigate before changing the operating envir
 Do not begin Google OAuth, background-service setup, firewall changes, startup configuration, or systemwide package installation until the user reviews the findings and plan. Repository-local dependency environments and downloads declared in project manifests are allowed. Preserve the global safety instructions in effect for the Codex environment.
 
 The unattended-safe scope is read-only assessment, benchmarks that do not alter system configuration, documentation, tests, and repository-local implementation. YOLO mode does not authorize OS configuration, public network exposure, Google mutations, email sending, file deletion, purchases, trades, or destructive actions.
+
+Treat serviceability as an acceptance gate. Prefer a modular monolith, fake adapters, explicit contracts, small coherent commits, documented decisions, and locally runnable checks. Do not introduce infrastructure or frameworks without a recorded requirement. Do not leave generated or agent-written code unexplained by component documentation and tests.
 
 Do not automatically download Ollama models. Inventory and benchmark installed models, map candidates to the roles in docs/orchestrator-spec.md, and report missing roles.
 

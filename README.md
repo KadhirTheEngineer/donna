@@ -61,6 +61,7 @@ The safe default is guarded mode: reads are allowed, consequential writes ask, a
     docs/system-spec.md  product and system source of truth
     docs/orchestrator-spec.md  typed workflow and durability contract
     docs/ollama-interface.md   local inference adapter contract
+    docs/serviceability.md     maintainability and owner-learning contract
     docs/handoff.md      entry point for the Windows implementation session
     docs/                architecture, API contract, and roadmap
 
